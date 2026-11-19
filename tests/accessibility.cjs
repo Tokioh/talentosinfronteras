@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const preferences = ['contrast','large','spacing','links','font','align','width','focus','decorations','motion'];
 const server = http.createServer((req, res) => {
   const file = req.url === '/' ? 'index.html' : req.url.slice(1);
-  if (!['index.html','styles.css','accessibility.css','app.js'].includes(file)) {
+  if (!['index.html','styles.css','accessibility.css','app.js','local-tools.js'].includes(file)) {
     res.writeHead(404).end(); return;
   }
   res.setHeader('Content-Type', file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'text/javascript' : 'text/html');

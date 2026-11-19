@@ -1,6 +1,13 @@
 /* Non-modal preferences: no keyboard trap or automatic context change. */
+nav .mobile-employer{display:none}
+@media(max-width:720px){nav .mobile-employer{display:flex}}
+.message p{white-space:pre-wrap}
+#main:focus-visible,#detail-title:focus-visible{outline:3px solid #704096;outline-offset:4px}
 [hidden]{display:none!important}
 .main-wrap,.hero>div,.job,.field{min-width:0}
+.field :is(input:not([type=checkbox]),textarea,select){width:100%;min-width:0}
+.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:720px){.form-grid{grid-template-columns:minmax(0,1fr)}}
 button,select,summary{min-height:44px}
 input:not([type=checkbox]),textarea{min-height:44px}
 a,button,label,p,h1,h2,h3{overflow-wrap:anywhere}
