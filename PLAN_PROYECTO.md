@@ -1,5 +1,7 @@
 # TalentoSinBarreras — análisis y plan de trabajo
 
+> Documento de la fase de prototipo. Se añadió una plataforma con backend CSV en `/`; el prototipo se conserva en `/demo/`. El estado actualizado de cuentas, permisos, mensajes y revisión está en `documentos/PLATAFORMA_CSV.md`. Los pendientes de seguridad, operación, multimedia y validación no se consideran completados automáticamente.
+
 ## 1. Alcance y diagnóstico
 
 Portal académico de empleo inclusivo en español, implementado con HTML, CSS y JavaScript sin framework. Es una aplicación estática con siete vistas por fragmentos de URL. No existe servidor de negocio, autenticación, base de datos remota, mensajería real ni revisión humana conectada.

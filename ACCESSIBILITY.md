@@ -1,5 +1,7 @@
 # Preferencias de accesibilidad
 
+> Este documento describe el panel del prototipo original. Para la plataforma con backend, las correcciones de formularios, las pruebas axe y los pendientes de WCAG 2.2 AA, consultar **[Accesibilidad y usabilidad](documentos/ACCESIBILIDAD_USABILIDAD.md)**. No se declara conformidad completa a partir de las pruebas automáticas.
+
 El panel es una sección desplegable **no modal**, no un menú ARIA (`role="menu"`). Sus controles son casillas nativas y botones con nombres visibles. No bloquea el resto de la página ni atrapa el foco.
 
 ## Uso

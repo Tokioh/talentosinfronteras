@@ -1,5 +1,7 @@
 # Matriz de cumplimiento y trazabilidad
 
+> Esta matriz registra la fase local del prototipo, conservada en `/demo/`. Para la plataforma nueva en `/`, con backend CSV, consultar `PLATAFORMA_CSV.md`: cuentas, mensajes y solicitudes ya tienen servidor, pero varias funciones del prototipo no se han trasladado todavía. No interpretar esta matriz histórica como cobertura completa de la nueva interfaz.
+
 ## Alcance y fuentes
 
 Fuentes: libro `Talento_Sin_Barreras_Analisis_de_Tareas.xlsx`, su generador `generar_excel.py`, `../ACCESSIBILITY.md`, `../PLAN_PROYECTO.md` y README original. No se encontró una especificación oficial de RF numerados. Los identificadores Tn-Un corresponden a las tareas del libro, no a nuevos RF oficiales.

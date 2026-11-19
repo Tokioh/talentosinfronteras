@@ -1,5 +1,11 @@
 **
 !Dockerfile
+!server/
+!server/**
+!platform.html
+!platform.css
+!platform.js
+!navigation.js
 !index.html
 !styles.css
 !accessibility.css

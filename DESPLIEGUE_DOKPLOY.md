@@ -1,120 +1,99 @@
-# Desplegar TalentoSinBarreras en Dokploy
+# Dokploy — plataforma con backend y CSV
 
-## Qué se publica
+> Esta configuración reemplaza la publicación estática anterior. Ahora se ejecuta Bun y el puerto interno es **8000**, no 80. `deploy/nginx.conf` pertenece al despliegue anterior y no se usa en el Dockerfile actual.
 
-Sitio estático con Nginx en contenedor Docker. No necesita Bun, Node, Python, base de datos ni variables secretas dentro del contenedor. Bun se utiliza para desarrollo y pruebas locales.
+## Configuración
 
-**Importante:** publicar el sitio no activa cuentas, mensajería real ni revisión humana. Cada visitante conserva sus propios datos en el navegador. No usar candidaturas reales ni anunciar soporte conectado. Revisar `documentos/MATRIZ_CUMPLIMIENTO.md`.
+1. Crear/editar Application y seleccionar repositorio `Tokioh/talentosinfronteras`, rama del commit que incluya estos cambios.
+2. Método **Dockerfile**; contexto raíz (`.` o `/` según el campo), archivo `Dockerfile`. No seleccionar `dist/`.
+3. Mantener **una sola réplica**. Desactivar autoscaling y cualquier despliegue con dos instancias escribiendo simultáneamente sobre el mismo volumen. Preferir parar/recrear la instancia; aceptar una breve interrupción. CSV no admite escritores concurrentes de distintos procesos.
+4. Añadir volumen persistente en **`/app/data`**. Debe ser escribible por el usuario `bun` de la imagen. No exponer esta carpeta por HTTP ni montarla sobre `/app`.
+5. Definir variables:
 
-## 1. Requisitos
-
-- Servidor con Dokploy operativo y acceso administrativo.
-- Acceso de Dokploy al repositorio `https://github.com/Tokioh/talentosinfronteras`, rama `main`. Si es privado, autorizar el proveedor GitHub o configurar un acceso Git de solo lectura admitido por tu instalación; no guardar tokens en el repositorio.
-- Dominio/subdominio disponible, por ejemplo `talento.ejemplo.com`.
-- DNS A del subdominio dirigido a la IP pública del servidor. Si existe AAAA, también debe apuntar al servidor y tener conectividad IPv6; en caso contrario, corregirlo o retirarlo.
-- Puertos públicos 80/443 permitidos para el proxy y los certificados. No abrir públicamente el puerto de la aplicación mediante un mapeo adicional.
-
-Los nombres exactos de botones pueden variar según la versión de Dokploy.
-
-## 2. Crear la aplicación
-
-1. Entrar a Dokploy y crear o abrir un proyecto.
-2. Crear un servicio de tipo **Application / Aplicación** (no una base de datos).
-3. En el proveedor de código, seleccionar GitHub o Git según la conexión disponible.
-4. Seleccionar el repositorio `Tokioh/talentosinfronteras` y la rama `main`.
-5. Elegir **Dockerfile** como método de construcción, no Nixpacks ni Buildpacks.
-6. Configurar:
-
-   | Campo | Valor |
-   | --- | --- |
-   | Contexto/ruta de construcción | `.` o `/` según el campo: raíz del repositorio |
-   | Ruta del Dockerfile | `Dockerfile` (o `/Dockerfile` si la interfaz pide ruta absoluta al repositorio) |
-   | Etapa de construcción | Predeterminada; no hay múltiples etapas |
-   | Puerto interno del contenedor | `80` |
-   | Variables de entorno | Ninguna necesaria |
-   | Volúmenes persistentes | Ninguno necesario |
-
-   **No usar `dist/` como contexto:** aunque la carpeta local se llama `dist`, este repositorio tiene `index.html` y `Dockerfile` directamente en su raíz.
-
-7. No añadir comandos de instalación, build ni start personalizados. La imagen de Nginx aporta el arranque.
-8. Guardar y ejecutar **Deploy / Desplegar**. Revisar los logs de construcción y de ejecución.
-
-## 3. Dominio y HTTPS
-
-1. En **Domains / Dominios**, añadir `talento.ejemplo.com`, sustituyéndolo por el dominio real.
-2. Ruta pública: `/`. Puerto del contenedor: **80**. Si pide protocolo del servicio interno, seleccionar HTTP: el proxy termina TLS.
-3. Habilitar HTTPS con el proveedor de certificados disponible, habitualmente Let's Encrypt.
-4. Guardar los cambios y desplegar de nuevo si la interfaz lo requiere.
-5. Esperar propagación DNS y emisión del certificado. Verificar que el dominio abre por HTTPS sin advertencias; configurar redirección HTTP → HTTPS en el proxy si no se activa automáticamente.
-
-Si usas un proxy DNS externo, diagnosticar primero con resolución DNS directa cuando haya problemas de emisión. No desactivar verificaciones TLS como solución.
-
-## 4. Comprobación posterior
-
-Visitar:
-
-- `https://talento.ejemplo.com/` → portada.
-- `https://talento.ejemplo.com/health` → `ok`.
-- `https://talento.ejemplo.com/#perfil` → perfil, también después de recargar.
-- `https://talento.ejemplo.com/app.js` y `/local-tools.js` → HTTP 200, tipo JavaScript.
-- `https://talento.ejemplo.com/.git/config`, `/package.json` y `/documentos/` → HTTP 404.
-
-Probar manualmente:
-
-- Accesibilidad, navegación móvil y diálogo de vacante.
-- Perfil, postulaciones locales y consentimiento de ajustes.
-- Edición de vacante y copia JSON.
-- Archivo de audio/video con transcripción y subtítulos en HTTPS.
-- Ausencia de errores JavaScript o bloqueos inesperados de CSP en la consola.
-
-La imagen incluye `HEALTHCHECK` sobre `/health`. Si tu versión de Dokploy admite comprobaciones adicionales, usar HTTP en puerto 80 y ruta `/health`. No confundir el healthcheck del contenedor con la comprobación pública de DNS/TLS.
-
-## 5. Datos, privacidad y caché
-
-- **No hay base de datos remota:** recrear el contenedor no borra los datos que cada usuario tiene en su navegador.
-- Los datos están asociados al origen (protocolo, dominio y puerto). Los datos de `localhost` no aparecen automáticamente en el dominio de producción. Cambiar de dominio o HTTP a HTTPS también cambia el origen.
-- Para trasladar texto, usar exportación/importación desde el perfil. La copia no incluye audio/video, no está cifrada y contiene ajustes privados.
-- El borrado se realiza en cada navegador. Borrar un contenedor no elimina los datos de los visitantes.
-- Los recursos usan `Cache-Control: no-cache` porque no tienen nombres con hash; el navegador revalida para evitar versiones mezcladas.
-- No montar un volumen sobre `/usr/share/nginx/html`: ocultaría los archivos publicados.
-- Las fuentes de Google son opcionales. Si no cargan, se usa Arial. Los navegadores podrían realizar solicitudes externas de fuentes; valorar alojarlas localmente antes de un uso con políticas de privacidad más estrictas.
-
-## 6. Actualizar y revertir
-
-1. Ejecutar pruebas locales: `bun run --bun test`.
-2. Hacer commit y push a `main`.
-3. Desplegar manualmente en Dokploy, o activar despliegue automático/webhook si el proveedor está conectado y autorizado.
-4. Repetir la comprobación de `/health` y los flujos principales.
-5. Si hay un fallo, usar la opción de rollback de tu instalación si está disponible o seleccionar un commit conocido y volver a construirlo. No es necesario hacer `force push`.
-
-Conservar el hash del commit desplegado. Fijar la imagen base por digest y revisar sus actualizaciones/vulnerabilidades antes de una operación sensible; la etiqueta actual `nginx:1.28-alpine` permite actualizaciones dentro de esa versión.
-
-## 7. Prueba Docker local opcional
-
-Con Docker instalado y en ejecución:
-
-```sh
-docker build -t talentos-inclusivos .
-docker run --rm --name talentos-inclusivos -p 8080:80 talentos-inclusivos
+```text
+NODE_ENV=production
+HOST=0.0.0.0
+PORT=8000
+DATA_DIR=/app/data
+COOKIE_SECURE=true
+PUBLIC_ORIGIN=https://talento.tudominio.com
+REVIEWER_EMAIL=correo-del-revisor@tudominio.com
+REVIEWER_PASSWORD=UNA_CONTRASENA_LARGA_UNICA_Y_SECRETA
 ```
 
-Abrir `http://localhost:8080` y `/health`. Ctrl+C detiene el contenedor. En otra terminal se puede comprobar la configuración con:
+Sustituir dominio y credenciales. `PUBLIC_ORIGIN` no lleva barra final ni ruta; debe coincidir exactamente con el dominio público HTTPS. No copiar literalmente el ejemplo de contraseña. Guardar los secretos solo en Dokploy, nunca en Git.
 
-```sh
-docker run --rm talentos-inclusivos nginx -t
+La cuenta revisora se provisiona al arrancar si ese correo no existe. No hay registro público de revisores. Si el correo ya pertenece a otra cuenta, no se eleva su rol automáticamente. Cambiar la variable no cambia contraseñas de cuentas existentes. No hay todavía un flujo de recuperación o rotación desde la interfaz: resolverlo antes de admitir usuarios reales.
+
+## Tarjetas de usuarios de prueba en el login
+
+En desarrollo aparecen por defecto tres tarjetas: candidata, empresa y revisor. Al seleccionarlas solo se rellenan correo y contraseña; no se inicia sesión automáticamente. Se crean cuentas compartidas de prueba persistentes en el CSV.
+
+En Dokploy/producción están desactivadas por defecto. Para una instalación **exclusivamente de demostración**, añadir `ENABLE_DEMO_ACCOUNTS=true` y redesplegar. No activar en una instancia con datos reales: cualquier visitante podría utilizar esos perfiles, incluido el revisor. Para deshabilitarlas, configurar `ENABLE_DEMO_ACCOUNTS=false` y reiniciar; desaparecen los cuadros y se rechaza el login de las cuentas marcadas como demo, aunque sus registros se conservan.
+
+Las tarjetas solo publican credenciales de las cuentas demo creadas por el servidor; nunca muestran las de `REVIEWER_EMAIL` ni cuentas normales. Las cuentas demo usan correos del dominio reservado `demo.example` y no envían correo.
+
+## Poblar la demostración en el servidor
+
+Para cargar ejemplos en una instalación sin datos reales, añadir:
+
+```text
+ENABLE_DEMO_ACCOUNTS=true
+SEED_DEMO_DATA=true
 ```
 
-## Solución de problemas
+Revisar la copia del volumen antes de desplegar. Se cargan automáticamente 10 vacantes, 7 postulaciones, 9 mensajes, 4 solicitudes, 6 guardados y los perfiles necesarios antes de aceptar conexiones. La carga no duplica registros con identificador de ejemplo ni sobrescribe sus modificaciones. Los registros físicamente eliminados pueden recrearse al volver a cargar; las vacantes retiradas y los estados cambiados se conservan.
 
-| Síntoma | Comprobar |
-| --- | --- |
-| No encuentra Dockerfile o archivos COPY | Contexto raíz del repositorio, no `dist/`. |
-| Error 502/504 | Contenedor iniciado, logs y dominio apuntando al puerto interno 80. |
-| Certificado no emitido | A/AAAA, puertos 80/443, propagación y proxy DNS externo. |
-| Datos no aparecen | Mismo navegador y origen; no existe sincronización. |
-| Interfaz antigua o error al cargar script | Revisar commit desplegado y recargar; confirmar `/local-tools.js`. |
-| Puerto local 8000 ocupado | Otro servidor de desarrollo ya está abierto; detenerlo. No afecta al puerto interno 80 de Dokploy. |
+Se requiere una sola instancia. El comando manual `bun run --bun seed:demo` requiere detener el servidor y crea una copia previa del CSV. No ejecutar el comando manual dentro de un contenedor que ya esté sirviendo tráfico.
 
-## Límite de verificación
+Los ejemplos incluyen cuentas compartidas y solicitudes visibles al revisor demo. Nunca habilitar estos indicadores en una plataforma con información personal real.
 
-Las pruebas de interfaz pueden ejecutarse localmente, pero la publicación en tu instancia de Dokploy requiere acceso al servidor, dominio y proveedor Git. La inclusión de estos archivos no significa que ya se haya desplegado ni que se haya emitido un certificado.
+## Dominio
+
+- Registro DNS A hacia la IP pública del servidor; corregir AAAA si existe.
+- Host en Dokploy: `talento.tudominio.com`, sin protocolo.
+- Path `/`, puerto interno **8000**, protocolo interno HTTP.
+- HTTPS/Let's Encrypt habilitado en el proxy. Puertos públicos 80/443 disponibles.
+- No publicar directamente el puerto 8000 hacia Internet.
+- Desplegar y comprobar logs. Producción se niega a arrancar sin origen HTTPS y cookies seguras configuradas.
+
+## Comprobación
+
+- `/health` devuelve JSON `{"ok":true}`.
+- `/` muestra inicio de sesión y registro.
+- Crear un candidato y una empresa de prueba en navegadores/perfiles separados.
+- Empresa publica, candidato postula, empresa ve perfil compartido y ambos intercambian mensajes.
+- El candidato solo comparte ajustes si marca la autorización; probar ambos casos.
+- Iniciar sesión como revisor, responder una solicitud y comprobar que el solicitante ve la respuesta.
+- Reiniciar contenedor: cuentas y registros deben persistir. Las sesiones están en memoria y se cierran al reiniciar.
+- `/data/platform.csv`, `/.git/config`, `/package.json` devuelven 404.
+- `/demo/` conserva la demostración anterior, aislada y sin conexión a las cuentas del servidor.
+
+## Persistencia y copias
+
+`/app/data/platform.csv` tiene una cabecera y una columna `record` con JSON escapado según CSV. Es una base de registros, no una hoja de cálculo de campos planos. No abrir/editar con Excel para evitar conversiones destructivas y exposición de contenido introducido por usuarios.
+
+Las escrituras usan archivo temporal, sincronización y reemplazo atómico. Esto evita publicar un CSV parcialmente escrito en el funcionamiento normal, pero **no convierte CSV en una base transaccional ni garantiza recuperación ante todo fallo de disco**.
+
+Para una copia coherente, detener temporalmente la instancia, respaldar el volumen completo y volver a arrancar. Cifrar copias y limitar permisos; contienen perfiles, ajustes, conversaciones y hashes de contraseñas. Probar restauración en una instancia aislada. Nunca subir el CSV a Git.
+
+No editar el CSV con el servidor activo. No compartir volumen entre réplicas ni iniciar dos procesos con el mismo directorio. Si el CSV está corrupto, el servidor falla al arrancar en lugar de sobrescribirlo silenciosamente.
+
+## Desarrollo
+
+```sh
+bun install
+bunx playwright install chromium
+bun run --bun test
+bun run --bun start
+```
+
+Abrir `http://127.0.0.1:8000`. En desarrollo no activar `COOKIE_SECURE` sobre HTTP. El servidor usa `data/` (ignorado por Git).
+
+Prototipo anterior: `bun run --bun start:demo` (no puede usar el mismo puerto al mismo tiempo).
+
+## Límites antes de una operación pública sensible
+
+La implementación entrega registros y mensajes dentro del portal, no correo ni notificaciones externas. El operador debe asignar revisores reales. No hay verificación de correo/identidad empresarial, recuperación de cuenta, política legal aprobada, eliminación de cuenta, carga multimedia privada en servidor, registro de auditoría completo ni evaluación de penetración. La versión nueva no migra los datos privados del prototipo automáticamente. Revisar `documentos/PLATAFORMA_CSV.md`.
+
+No declarar conformidad WCAG ni producción certificada por pasar las pruebas automatizadas. Docker no está disponible en el entorno de desarrollo usado para esta intervención; construir y verificar la imagen en Dokploy.

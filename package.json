@@ -4,11 +4,16 @@
   "private": true,
   "description": "Prototipo académico local de empleo inclusivo",
   "scripts": {
-    "start": "node scripts/serve.cjs",
+    "start": "node server/platform.cjs",
+    "seed:demo": "node scripts/seed-demo.cjs",
+    "start:demo": "node scripts/serve.cjs",
+    "test:platform": "node tests/platform.cjs",
+    "test:a11y": "node tests/wcag.cjs",
     "check": "node scripts/check.cjs",
-    "test": "node scripts/check.cjs && node tests/accessibility.cjs && node tests/flows.cjs && node tests/local-tools.cjs"
+    "test": "node scripts/check.cjs && node tests/accessibility.cjs && node tests/flows.cjs && node tests/local-tools.cjs && node tests/platform.cjs && node tests/wcag.cjs && node tests/seed.cjs"
   },
   "devDependencies": {
+    "axe-core": "^4.14.1",
     "playwright": "^1.56.1"
   }
 }
